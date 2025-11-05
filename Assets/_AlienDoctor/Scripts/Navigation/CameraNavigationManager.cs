@@ -53,7 +53,7 @@ public class CameraNavigationManager : MonoBehaviour
             return;
         }
         Instance = this;
-        DontDestroyOnLoad(gameObject);
+        //DontDestroyOnLoad(gameObject);
 
         mainCamera = Camera.main;
 
