@@ -40,8 +40,21 @@ public class OutlineHover : MonoBehaviour
         }
     }
 
-    void OnMouseEnter() => SetOutline(hoverOutlineValue);
-    void OnMouseExit() => SetOutline(0f);
+    void OnMouseEnter()
+    {
+        // ✅ Only trigger hover effect when camera is OMNIPOTENT
+        if (CameraNavigationManager.Instance == null ||
+            CameraNavigationManager.Instance.CurrentState != CameraNavigationManager.CameraState.OMNIPOTENT)
+            return;
+
+        SetOutline(hoverOutlineValue);
+    }
+
+    void OnMouseExit()
+    {
+        // Always reset to zero on exit — but optional: you can also gate this if needed
+        SetOutline(0f);
+    }
 
     private void SetOutline(float targetValue)
     {
