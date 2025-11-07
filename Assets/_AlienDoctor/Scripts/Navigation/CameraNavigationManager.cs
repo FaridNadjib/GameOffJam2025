@@ -14,7 +14,8 @@ public class CameraNavigationManager : MonoBehaviour
     public enum CameraState
     {
         OMNIPOTENT,
-        POVCAM
+        POVCAM,
+        RESEARCH
     }
 
     [Header("Cameras")]
