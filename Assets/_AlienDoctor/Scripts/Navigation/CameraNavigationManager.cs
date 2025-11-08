@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Cinemachine;
+using System;
 /// <summary>
 /// Handles switching between an Omnipotent (overview) camera and multiple POV cameras.
 /// Singleton-based for global access.
@@ -15,8 +16,12 @@ public class CameraNavigationManager : MonoBehaviour
     {
         OMNIPOTENT,
         POVCAM,
-        RESEARCH
+        SUBVIEW
     }
+
+    // ---------- Events --------------
+    public event Action OnEnterSubView;
+    public event Action OnExitSubView;
 
     [Header("Cameras")]
     [Tooltip("Omnipotent (default) virtual camera")]
@@ -39,10 +44,17 @@ public class CameraNavigationManager : MonoBehaviour
 
     // ----------- Private variables -----------
     private POVPoint currentPOV = null;
+    public POVPoint CurrentPOV => currentPOV;
     private Camera mainCamera;
     private CameraState currentState = CameraState.OMNIPOTENT;
 
     public CameraState CurrentState => currentState;
+
+    // ----------- Helper Functions -----------
+    public bool IsInSubView => currentState == CameraState.SUBVIEW;
+    public bool IsOmnipotent => currentState == CameraState.OMNIPOTENT;
+    public bool IsInPOV => currentState == CameraState.POVCAM;
+
 
     // ----------- Lifecycle -----------
     private void Awake()
@@ -60,13 +72,6 @@ public class CameraNavigationManager : MonoBehaviour
 
         if (omnipotentVCam == null)
             Debug.LogError("Omnipotent vcam not assigned on CameraNavigationManager.");
-
-        if (povPoints.Count == 0)
-        {
-            // Auto-discover POVPoints in scene
-            var list = FindObjectsOfType<POVPoint>();
-            povPoints = new List<POVPoint>(list);
-        }
 
         InitializePriorities();
     }
@@ -95,8 +100,12 @@ public class CameraNavigationManager : MonoBehaviour
                 break;
 
             case CameraState.POVCAM:
-                if (Input.GetKeyDown(KeyCode.Escape))
+                if (Input.GetKeyDown(KeyCode.Escape)|| Input.GetMouseButtonDown(1))
                     ReturnToOmnipotent();
+                break;
+            case CameraState.SUBVIEW:
+                if (Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(1))
+                    ReturnFromSubCamera();
                 break;
         }
     }
@@ -156,6 +165,31 @@ public class CameraNavigationManager : MonoBehaviour
         currentState = CameraState.OMNIPOTENT;
     }
 
+    public void EnterSubCamera(int subIndex)
+    {
+        if (currentPOV == null)
+        {
+            Debug.LogWarning("Cannot enter sub-camera — not inside a POV yet.");
+            return;
+        }
+
+        currentPOV.ActivateSubCamera(subIndex, activePriority, povIdlePriority);
+        currentState = CameraState.SUBVIEW;
+    }
+
+    public void ReturnFromSubCamera()
+    {
+        if (currentPOV == null) return;
+
+        currentPOV.DeactivateAllSubCameras();
+
+        if (currentPOV.vCam != null)
+            currentPOV.vCam.Priority = activePriority;
+
+        currentState = CameraState.POVCAM;
+    }
+
+
     private void SetPOVsClickable(bool clickable)
     {
         foreach (var p in povPoints)
@@ -175,6 +209,4 @@ public class CameraNavigationManager : MonoBehaviour
             Debug.LogWarning($"No POV named '{name}' found!");
     }
 
-    public bool IsOmnipotent => currentState == CameraState.OMNIPOTENT;
-    public bool IsInPOV => currentState == CameraState.POVCAM;
 }
